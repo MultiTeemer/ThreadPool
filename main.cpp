@@ -113,12 +113,12 @@ struct ThreadPoolsAction
         action = mapping[parts[1][0]];
     }
 
-    bool operator==(const ThreadPoolsAction& rhs)
+    bool operator==(const ThreadPoolsAction& rhs) const
     {
         return action == rhs.action && task_id == rhs.task_id;
     }
 
-    bool operator!=(const ThreadPoolsAction& rhs)
+    bool operator!=(const ThreadPoolsAction& rhs) const
     {
         return !(*this == rhs);
     }
@@ -173,7 +173,7 @@ Vector<ThreadPoolsAction> run_test_case(const Vector<TestersAction>& actions)
     typedef TestersAction::ActionsT ta;
     typedef ThreadPoolsAction::ActionsT tpa;
 
-    ThreadPool* pool;
+    ThreadPool* pool = nullptr;
     string filename;
     
     for (const auto& action : actions)
@@ -250,7 +250,7 @@ void run_tests(const vector<TestCase>& tests, string tests_name)
 
         if (runs_results == tc.expected)
         {
-            cout << tests_name << "#" << i << " completed\n";
+            cout << tests_name << "#" << i << " passed\n";
         }
         else
         {
@@ -263,6 +263,11 @@ void run_tests(const vector<TestCase>& tests, string tests_name)
 
             for (int i = 0; i < s1 || i < s2; ++i)
             {
+                if (i < s1 && i < s2 && tc.expected[i] == runs_results[i])
+                {
+                    continue;
+                }
+
                 if (i < s1)
                 {
                     cout << ("Expected: " + (string)(tc.expected[i]) + " ");
@@ -284,16 +289,16 @@ void run_tests(const vector<TestCase>& tests, string tests_name)
 #define START_TESTCASE_DESCRIPTION { Vector<TestersAction> actions; Vector<ThreadPoolsAction> expected;
 #define END_TESTCASE_DESCRIPTION tests.push_back({ actions, expected }); }
 
-void add_tasks_tests()
+typedef TestersAction::ActionsT ta;
+typedef ThreadPoolsAction::ActionsT tpa;
+
+void hot_threads_tests()
 {
     vector<TestCase> tests;
-    
-    typedef TestersAction::ActionsT ta;
-    typedef ThreadPoolsAction::ActionsT tpa;
 
-    START_TESTCASE_DESCRIPTION
+    START_TESTCASE_DESCRIPTION;
     actions
-        .push_back(TestersAction(1, 1, "add_tasks_1"))
+        .push_back(TestersAction(1, 1, "hot_threads_1"))
         .push_back(TestersAction(ta::ADD, 1))
         .push_back(TestersAction(ta::SLEEP, 2000))
         ;
@@ -302,11 +307,11 @@ void add_tasks_tests()
         .push_back(ThreadPoolsAction(tpa::ASSIGN_TO_HOT_THREAD, 1))
         .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 1))
         ;
-    END_TESTCASE_DESCRIPTION
+    END_TESTCASE_DESCRIPTION;
         
-    START_TESTCASE_DESCRIPTION
+    START_TESTCASE_DESCRIPTION;
     actions
-        .push_back(TestersAction(3, 1, "add_tasks_2"))
+        .push_back(TestersAction(3, 1, "hot_threads_2"))
         .push_back(TestersAction(ta::ADD, 1))
         .push_back(TestersAction(ta::SLEEP, 250))
         .push_back(TestersAction(ta::ADD, 1))
@@ -323,28 +328,95 @@ void add_tasks_tests()
         .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 2))
         .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 3))
     ;
-    END_TESTCASE_DESCRIPTION
+    END_TESTCASE_DESCRIPTION;
 
-    START_TESTCASE_DESCRIPTION
+
+    run_tests(tests, "hot threads");
+}
+
+void free_threads_tests()
+{
+    vector<TestCase> tests;
+
+    START_TESTCASE_DESCRIPTION;
     actions
-        .push_back(TestersAction(0, 2, "add_tasks_3"))
+        .push_back(TestersAction(0, 1, "free_threads_1"))
         .push_back(TestersAction(ta::ADD, 1))
-        .push_back(TestersAction(ta::SLEEP, 2000))
-    ;
+        .push_back(TestersAction(ta::SLEEP, 2500))
+        ;
 
     expected
         .push_back(ThreadPoolsAction(tpa::CREATE_FREE_THREAD, 1))
         .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 1))
         .push_back(ThreadPoolsAction(tpa::TERMINATE_FREE_THREAD, 1))
-    ;
-    END_TESTCASE_DESCRIPTION
+        ;
+    END_TESTCASE_DESCRIPTION;
 
-    run_tests(tests, "add tasks");
+    START_TESTCASE_DESCRIPTION;
+    actions
+        .push_back(TestersAction(1, 4, "free_threads_2"))
+        .push_back(TestersAction(ta::ADD, 3))
+        .push_back(TestersAction(ta::ADD, 1))
+        .push_back(TestersAction(ta::SLEEP, 5000))
+        ;
+
+    expected
+        .push_back(ThreadPoolsAction(tpa::ASSIGN_TO_HOT_THREAD, 1))
+        .push_back(ThreadPoolsAction(tpa::CREATE_FREE_THREAD, 2))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 2))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 1))
+        .push_back(ThreadPoolsAction(tpa::TERMINATE_FREE_THREAD, 2))
+        ;
+    END_TESTCASE_DESCRIPTION;
+
+    START_TESTCASE_DESCRIPTION;
+    actions
+        .push_back(TestersAction(0, 2, "free_threads_3"))
+        .push_back(TestersAction(ta::ADD, 1))
+        .push_back(TestersAction(ta::ADD, 1))
+        .push_back(TestersAction(ta::SLEEP, 1250))
+        .push_back(TestersAction(ta::ADD, 1))
+        .push_back(TestersAction(ta::ADD, 1))
+        .push_back(TestersAction(ta::SLEEP, 3000))
+        ;
+
+    expected
+        .push_back(ThreadPoolsAction(tpa::CREATE_FREE_THREAD, 1))
+        .push_back(ThreadPoolsAction(tpa::CREATE_FREE_THREAD, 2))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 1))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 2))
+        .push_back(ThreadPoolsAction(tpa::ASSIGN_TO_FREE_THREAD, 3))
+        .push_back(ThreadPoolsAction(tpa::ASSIGN_TO_FREE_THREAD, 4))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 3))
+        .push_back(ThreadPoolsAction(tpa::RETURN_RESULT, 4))
+        .push_back(ThreadPoolsAction(tpa::TERMINATE_FREE_THREAD, 3))
+        .push_back(ThreadPoolsAction(tpa::TERMINATE_FREE_THREAD, 4))
+        ;
+    END_TESTCASE_DESCRIPTION;
+    
+    run_tests(tests, "free threads");
 }
 
 void kill_tasks_tests()
 {
-    
+    vector<TestCase> tests;
+
+    START_TESTCASE_DESCRIPTION;
+    actions
+        .push_back(TestersAction(1, 1, "kill_tasks_1"))
+        .push_back(TestersAction(ta::ADD, 3))
+        .push_back(TestersAction(ta::KILL, 1))
+    ;
+
+    expected
+        .push_back(ThreadPoolsAction(tpa::ASSIGN_TO_HOT_THREAD, 1))
+        .push_back(ThreadPoolsAction(tpa::KILL_TASK, 1))
+    ;
+    END_TESTCASE_DESCRIPTION;
+
+
+
+    run_tests(tests, "kill tasks");
 }
 
 #endif
@@ -395,11 +467,14 @@ int main(int argc, char** argv)
 #else
 
     vector<test> tests = {
-        add_tasks_tests,
+       // hot_threads_tests,
+      //  free_threads_tests,
         kill_tasks_tests
     };
 
     for_each(tests.begin(), tests.end(), [](test f) { f(); });
+
+    cout << "Testing completed. Press any key..." << endl;
 
     getchar();
 
