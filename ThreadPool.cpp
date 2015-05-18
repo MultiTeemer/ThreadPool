@@ -91,6 +91,8 @@ void ThreadPool::FreeThread::performTasks()
                 performAndReturn(lock);
             }
         } while (task_recieved.wait_for(lock, boost::chrono::seconds(timeout)) != boost::cv_status::timeout);
+        
+        // whats wrong with it? why do i get http://stackoverflow.com/questions/23635831/boost-assertion-on-thread-interruption?
 
         thread_death.notify_all();
     }
