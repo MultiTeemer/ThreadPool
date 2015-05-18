@@ -405,6 +405,7 @@ void kill_tasks_tests()
     actions
         .push_back(TestersAction(1, 1, "kill_tasks_1"))
         .push_back(TestersAction(ta::ADD, 3))
+        .push_back(TestersAction(ta::SLEEP, 300))
         .push_back(TestersAction(ta::KILL, 1))
     ;
 
@@ -414,7 +415,21 @@ void kill_tasks_tests()
     ;
     END_TESTCASE_DESCRIPTION;
 
+    START_TESTCASE_DESCRIPTION;
+    actions
+        .push_back(TestersAction(0, 1, "kill_tasks_1"))
+        .push_back(TestersAction(ta::ADD, 3))
+        .push_back(TestersAction(ta::SLEEP, 300))
+        .push_back(TestersAction(ta::KILL, 1))
+        .push_back(TestersAction(ta::SLEEP, 10000))
+    ;
 
+    expected
+        .push_back(ThreadPoolsAction(tpa::CREATE_FREE_THREAD, 1))
+        .push_back(ThreadPoolsAction(tpa::KILL_TASK, 1))
+        .push_back(ThreadPoolsAction(tpa::TERMINATE_FREE_THREAD, 1))
+    ;
+    END_TESTCASE_DESCRIPTION;
 
     run_tests(tests, "kill tasks");
 }
