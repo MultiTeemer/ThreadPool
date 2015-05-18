@@ -52,7 +52,7 @@ private:
 
         void performAndReturn(boost::unique_lock<boost::try_mutex>& lock);
         void performInParallel();
-        virtual void interrupt();
+        void interrupt();
 
         virtual void performTasks() = 0;
         virtual void run() = 0;
@@ -81,7 +81,6 @@ private:
         
         boost::condition_variable thread_death;
 
-        virtual void interrupt();
         virtual void run();
     };
 

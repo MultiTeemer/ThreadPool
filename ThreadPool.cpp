@@ -111,13 +111,6 @@ ThreadPool::FreeThread::FreeThread(const FreeThread& other)
     timeout(other.timeout)
 {}
 
-void ThreadPool::FreeThread::interrupt()
-{
-    BaseThread::interrupt();
-
-    thread_death.notify_one();
-}
-
 void ThreadPool::FreeThread::run()
 {
     watcher_thread = new boost::thread(boost::bind(&FreeThread::performTasks, this));
