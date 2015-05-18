@@ -295,6 +295,12 @@ void ThreadPool::waitForFreeThreadDeath(ThreadPool::FreeThread& thread)
 
         boost::mutex::scoped_lock listLock(listSync);
 
+#ifdef TESTING
+        string msg = boost::lexical_cast<string>(thread.last_task_id) + " t\n";
+
+        output << msg;
+#endif
+
         for (auto i = freeThreads.begin(); i != freeThreads.end(); ++i)
         {
             if (thread.last_task_id == i->last_task_id)
@@ -306,12 +312,6 @@ void ThreadPool::waitForFreeThreadDeath(ThreadPool::FreeThread& thread)
         }
 
         watchersForDeaths.erase(thread.last_task_id);
-
-#ifdef TESTING
-        string msg = boost::lexical_cast<string>(thread.last_task_id) + " t\n";
-
-        output << msg;
-#endif
     }
     catch (boost::thread_interrupted&)
     {
